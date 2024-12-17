@@ -33,8 +33,9 @@ jobs:
           import os
           import datetime
           import sys
+          import json
           
-          # Different types of development activities
+          # Development activities remain the same as before
           ACTIVITIES = {
               'feat': [
                   'add {feature} functionality',
@@ -103,55 +104,216 @@ jobs:
               'tests',
               'docs'
           ]
+
+          # Template files for different types of changes
+          PYTHON_CLASS_TEMPLATE = '''
+          class {name}:
+              """
+              {docstring}
+              """
+              
+              def __init__(self, {params}):
+                  {init_body}
+              
+              def {method_name}(self, {method_params}):
+                  """
+                  {method_docstring}
+                  """
+                  {method_body}
+          '''
+
+          REACT_COMPONENT_TEMPLATE = '''
+          import React from 'react';
           
+          const {name} = ({ {props} }) => {
+            const [state, setState] = React.useState({initial_state});
+            
+            React.useEffect(() => {
+              {effect_body}
+            }, [{dependencies}]);
+            
+            const handle{event} = () => {
+              {handler_body}
+            };
+            
+            return (
+              <div className="{className}">
+                {jsx_content}
+              </div>
+            );
+          };
+          
+          export default {name};
+          '''
+
+          HTML_TEMPLATE = '''
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>{title}</title>
+              <link rel="stylesheet" href="{css_file}">
+          </head>
+          <body>
+              <div class="container">
+                  {content}
+              </div>
+              <script src="{js_file}"></script>
+          </body>
+          </html>
+          '''
+
+          CSS_TEMPLATE = '''
+          .{container_class} {
+              display: flex;
+              flex-direction: {direction};
+              padding: {padding}px;
+              margin: {margin}px;
+              background-color: {bg_color};
+          }
+          
+          .{element_class} {
+              color: {color};
+              font-size: {font_size}px;
+              font-weight: {font_weight};
+              {additional_props}
+          }
+          '''
+
+          def generate_python_file():
+              class_name = f"{random.choice(['User', 'Data', 'Service', 'Manager', 'Handler'])}{random.choice(['Controller', 'Provider', 'Processor', 'Helper'])}"
+              params = ", ".join([f"{param}=None" for param in random.sample(['id', 'name', 'config', 'options', 'data'], random.randint(2, 4))])
+              
+              init_body = "\n        ".join([f"self.{param.split('=')[0]} = {param.split('=')[0]}" for param in params.split(", ")])
+              method_name = random.choice(['process', 'handle', 'validate', 'transform', 'update'])
+              
+              content = PYTHON_CLASS_TEMPLATE.format(
+                  name=class_name,
+                  docstring=f"A class that handles {class_name.lower()} operations.",
+                  params=params,
+                  init_body=init_body,
+                  method_name=method_name,
+                  method_params="data",
+                  method_docstring=f"Process the {method_name} operation.",
+                  method_body=f"return self.{random.choice(params.split('=')[0] for param in params.split(', '))}"
+              )
+              
+              filename = f"src/python/{class_name.lower()}.py"
+              return filename, content
+
+          def generate_react_component():
+              component_name = f"{random.choice(['User', 'Data', 'List', 'Card', 'Modal'])}{random.choice(['View', 'Component', 'Panel', 'Widget'])}"
+              props = ", ".join(random.sample(['data', 'onUpdate', 'isLoading', 'title'], random.randint(2, 3)))
+              
+              content = REACT_COMPONENT_TEMPLATE.format(
+                  name=component_name,
+                  props=props,
+                  initial_state="{ loading: false, data: null }",
+                  effect_body="// Fetch data or perform side effects",
+                  dependencies="[]",
+                  event="Update",
+                  handler_body="setState({ loading: true });",
+                  className=f"{component_name.lower()}-container",
+                  jsx_content=f"<h2>{component_name}</h2>"
+              )
+              
+              filename = f"src/components/{component_name}.jsx"
+              return filename, content
+
+          def generate_html_file():
+              page_name = random.choice(['home', 'about', 'contact', 'dashboard', 'profile'])
+              content = f'''
+                  <h1>{page_name.title()} Page</h1>
+                  <div class="content">
+                      <p>Welcome to the {page_name} page.</p>
+                  </div>
+              '''
+              
+              filename = f"src/pages/{page_name}.html"
+              return filename, HTML_TEMPLATE.format(
+                  title=f"{page_name.title()} Page",
+                  css_file=f"../styles/{page_name}.css",
+                  content=content,
+                  js_file=f"../js/{page_name}.js"
+              )
+
+          def generate_css_file():
+              colors = ['#f0f0f0', '#e0e0e0', '#d0d0d0', '#c0c0c0']
+              container_class = f"container-{random.randint(1, 100)}"
+              
+              content = CSS_TEMPLATE.format(
+                  container_class=container_class,
+                  direction=random.choice(['row', 'column']),
+                  padding=random.randint(10, 30),
+                  margin=random.randint(5, 20),
+                  bg_color=random.choice(colors),
+                  element_class=f"element-{random.randint(1, 100)}",
+                  color=random.choice(['#333', '#666', '#999']),
+                  font_size=random.randint(12, 24),
+                  font_weight=random.choice(['normal', 'bold', '500']),
+                  additional_props="border-radius: 4px;"
+              )
+              
+              filename = f"src/styles/style-{random.randint(1, 100)}.css"
+              return filename, content
+
+          def create_realistic_change():
+              # Choose a type of file to create/modify
+              file_type = random.choice(['python', 'react', 'html', 'css'])
+              
+              # Generate appropriate content based on type
+              if file_type == 'python':
+                  filename, content = generate_python_file()
+              elif file_type == 'react':
+                  filename, content = generate_react_component()
+              elif file_type == 'html':
+                  filename, content = generate_html_file()
+              else:  # css
+                  filename, content = generate_css_file()
+              
+              # Ensure directory exists
+              os.makedirs(os.path.dirname(filename), exist_ok=True)
+              
+              # Write content to file
+              with open(filename, 'w') as f:
+                  f.write(content)
+              
+              return filename
+
           def generate_commit_message():
-              # Select random activity type and template
+              # Same as before
               activity_type = random.choice(list(ACTIVITIES.keys()))
               template = random.choice(ACTIVITIES[activity_type])
               
-              # Select random feature or component based on activity type
-              if activity_type == 'feat':
-                  placeholder = random.choice(FEATURES)
-              else:
-                  placeholder = random.choice(COMPONENTS)
+              placeholder = random.choice(FEATURES if activity_type == 'feat' else COMPONENTS)
               
-              # Format message
               message = template.format(
                   feature=placeholder,
                   component=placeholder
               )
               
-              # Add optional scope
-              if random.random() < 0.3:  # 30% chance to add scope
+              if random.random() < 0.3:
                   scope = random.choice(COMPONENTS)
                   message = f"{activity_type}({scope}): {message}"
               else:
                   message = f"{activity_type}: {message}"
               
               return message
-          
-          def create_random_file_change():
-              # Create a random file change
-              filename = f"dummy/file_{random.randint(1, 100)}.txt"
-              os.makedirs(os.path.dirname(filename), exist_ok=True)
-              
-              with open(filename, 'a') as f:
-                  f.write(f"Change made at {datetime.datetime.now()}\n")
-              
-              return filename
-          
+
           if __name__ == "__main__":
               num_commits = int(sys.argv[1]) if len(sys.argv) > 1 else 5
               
               for _ in range(num_commits):
-                  # Create a random change
-                  filename = create_random_file_change()
-                  
-                  # Generate commit message
-                  message = generate_commit_message()
+                  # Create 1-3 file changes per commit
+                  num_changes = random.randint(1, 3)
+                  changed_files = [create_realistic_change() for _ in range(num_changes)]
                   
                   # Stage and commit
-                  os.system(f'git add {filename}')
+                  for file in changed_files:
+                      os.system(f'git add {file}')
+                  
+                  message = generate_commit_message()
                   os.system(f'git commit -m "{message}"')
           EOF
       
@@ -162,7 +324,6 @@ jobs:
       
       - name: Generate random commits
         run: |
-          # Use input count if provided, otherwise default to 5
           COMMIT_COUNT="${{ github.event.inputs.commit_count || '5' }}"
           python generate_commits.py $COMMIT_COUNT
       
