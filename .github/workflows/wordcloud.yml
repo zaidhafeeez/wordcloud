@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install wordcloud pandas numpy pillow matplotlib colorsys
+          pip install wordcloud pandas numpy pillow matplotlib
       
       - name: Generate commit message word cloud
         run: |
