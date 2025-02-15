@@ -1,8 +1,21 @@
 name: Generate Commit Word Cloud
+
 on:
   schedule:
     - cron: '0 0 * * 0'  # Run weekly on Sunday at midnight
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      color_scheme:
+        description: 'Color scheme to use'
+        required: false
+        default: 'github'
+        type: choice
+        options:
+          - github
+          - neon
+          - pastel
+          - sunset
+          - ocean
 
 jobs:
   generate-wordcloud:
@@ -13,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Fetch all history for all commits
+          fetch-depth: 0
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -24,189 +37,55 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install wordcloud pandas numpy pillow matplotlib
+          pip install -e .
       
-      - name: Generate commit message word cloud
+      - name: Generate word cloud
+        id: wordcloud
         run: |
-          # Create Python script
-          cat << EOF > generate_wordcloud.py
+          python - << EOF
+          from wordcloud_generator.visualizer import CommitWordCloudGenerator
           import subprocess
-          import pandas as pd
-          import numpy as np
-          from wordcloud import WordCloud
-          import re
-          import colorsys
-          import random
-          from datetime import datetime
-          import matplotlib.pyplot as plt
+          import json
           
-          # Color scheme functions
-          def github_colors():
-              """GitHub-inspired color palette"""
-              return ['#0366d6', '#28a745', '#d73a49', '#6f42c1', '#24292e']
-          
-          def generate_color_gradient(start_color, end_color, steps=10):
-              """Generate a gradient between two colors"""
-              def hex_to_rgb(hex_color):
-                  hex_color = hex_color.lstrip('#')
-                  return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-              
-              def rgb_to_hex(rgb):
-                  return '#{:02x}{:02x}{:02x}'.format(int(rgb[0]), int(rgb[1]), int(rgb[2]))
-              
-              start_rgb = hex_to_rgb(start_color)
-              end_rgb = hex_to_rgb(end_color)
-              
-              colors = []
-              for i in range(steps):
-                  r = start_rgb[0] + (end_rgb[0] - start_rgb[0]) * i / (steps-1)
-                  g = start_rgb[1] + (end_rgb[1] - start_rgb[1]) * i / (steps-1)
-                  b = start_rgb[2] + (end_rgb[2] - start_rgb[2]) * i / (steps-1)
-                  colors.append(rgb_to_hex((r, g, b)))
-              return colors
-          
-          def color_func(word, font_size, position, orientation, random_state=None, **kwargs):
-              """Dynamic color function based on word frequency"""
-              return np.random.choice(color_palette)
-          
-          # Get all commit messages
+          # Get commit messages
           git_log = subprocess.check_output(
-              ['git', 'log', '--pretty=format:%s|%ai'],  # Include commit date
+              ['git', 'log', '--pretty=format:%s'],
               encoding='utf-8'
-          )
+          ).lower()
           
-          # Clean and process commit messages
-          commits = [line.split('|') for line in git_log.split('\n')]
-          messages = [commit[0] for commit in commits]
-          dates = [commit[1] for commit in commits]
+          # Generate word cloud
+          generator = CommitWordCloudGenerator()
+          generator.color_scheme = "${{ github.event.inputs.color_scheme || 'github' }}"
           
-          text = ' '.join(messages).lower()
+          svg_path, metadata = generator.generate(git_log)
           
-          # Enhanced stopwords
-          stopwords = {
-              'merge', 'pull', 'request', 'branch', 'fix', 'fixed', 'bug',
-              'update', 'updated', 'commit', 'version', 'v1', 'v2', 'changelog',
-              'initial', 'add', 'added', 'remove', 'removed', 'change', 'changed',
-              'bump', 'upgrade', 'upgraded', 'downgrade', 'implement', 'implemented'
-          }
-          
-          # Choose color scheme (you can modify these or add new ones)
-          color_schemes = {
-              'github': github_colors(),
-              'sunset': generate_color_gradient('#FF8C42', '#2D3047'),
-              'ocean': generate_color_gradient('#006D77', '#83C5BE'),
-              'forest': generate_color_gradient('#2D5A27', '#A4C3B2'),
-              'purple_haze': generate_color_gradient('#6F42C1', '#D1B1E6')
-          }
-          
-          # Randomly select a color scheme
-          scheme_name = random.choice(list(color_schemes.keys()))
-          color_palette = color_schemes[scheme_name]
-          
-          # Calculate mask shape (rectangle with rounded corners)
-          def rounded_rectangle_mask(width, height, radius):
-              mask = np.zeros((height, width), dtype=np.uint8)
-              corner = np.fromfunction(
-                  lambda x, y: ((radius - x) ** 2 + (radius - y) ** 2) <= radius ** 2,
-                  (radius, radius)
-              ).astype(np.uint8)
-              
-              mask[0:radius, 0:radius] = corner
-              mask[0:radius, width-radius:] = np.fliplr(corner)
-              mask[height-radius:, 0:radius] = np.flipud(corner)
-              mask[height-radius:, width-radius:] = np.fliplr(np.flipud(corner))
-              
-              mask[radius:height-radius, :] = 1
-              mask[:, radius:width-radius] = 1
-              
-              return mask * 255
-          
-          # Generate mask
-          mask = rounded_rectangle_mask(1000, 500, 50)
-          
-          # Generate word cloud with enhanced styling
-          wordcloud = WordCloud(
-              width=1000,
-              height=500,
-              background_color='white',
-              stopwords=stopwords,
-              min_font_size=12,
-              max_font_size=80,
-              color_func=color_func,
-              mask=mask,
-              font_path='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
-              relative_scaling=0.7,
-              prefer_horizontal=0.7,
-              min_word_length=3,
-              collocations=True,
-              normalize_plurals=True
-          ).generate(text)
-          
-          # Create figure with proper DPI and size
-          plt.figure(figsize=(10, 5), dpi=100, facecolor='white')
-          plt.imshow(wordcloud, interpolation='bilinear')
-          plt.axis('off')
-          
-          # Add subtle border
-          plt.gca().spines['top'].set_visible(False)
-          plt.gca().spines['right'].set_visible(False)
-          plt.gca().spines['bottom'].set_visible(False)
-          plt.gca().spines['left'].set_visible(False)
-          
-          # Add metadata
-          plt.text(0.99, 0.01, f'Generated: {datetime.now().strftime("%Y-%m-%d")}\\nTheme: {scheme_name}',
-                  fontsize=8, color='gray', alpha=0.7,
-                  transform=plt.gca().transAxes, ha='right', va='bottom')
-          
-          # Save with high quality
-          plt.savefig('commit_wordcloud.svg', format='svg', dpi=300, bbox_inches='tight', 
-                     pad_inches=0.2, transparent=False)
-          plt.close()
-          
-          # Save color scheme info for README
-          with open('wordcloud_info.txt', 'w') as f:
-              f.write(f"Theme: {scheme_name}\\n")
-              f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\\n")
+          # Save metadata for README
+          with open('wordcloud_metadata.json', 'w') as f:
+              json.dump(metadata, f, indent=2)
           EOF
-          
-          # Run the script
-          python generate_wordcloud.py
       
       - name: Update README
         run: |
-          # Read wordcloud info
-          WORDCLOUD_INFO=$(cat wordcloud_info.txt)
+          METADATA=$(cat wordcloud_metadata.json)
           
-          # Check if README exists
+          # Create or update README section
+          README_CONTENT="## Commit Word Cloud\n\n"
+          README_CONTENT+="![Commit Word Cloud](commit_wordcloud.svg)\n\n"
+          README_CONTENT+="<details>\n<summary>Word Cloud Statistics</summary>\n\n"
+          README_CONTENT+="$(echo "$METADATA" | jq -r '. | "Theme: " + .theme + "\n" + "Generated: " + .timestamp + "\n\nTop 10 words:\n" + (.top_words | to_entries | map("- " + .value[0] + ": " + (.value[1] | tostring)) | join("\n"))')\n"
+          README_CONTENT+="</details>\n\n<!-- wordcloud-end -->"
+          
+          # Update README
           if [ -f README.md ]; then
-            # Remove existing word cloud section if it exists
-            sed -i '/## Commit Word Cloud/,/<!-- wordcloud-end -->/d' README.md
+            sed -i '/## Commit Word Cloud/,/<!-- wordcloud-end -->/c\'"$README_CONTENT" README.md
           else
-            touch README.md
+            echo "$README_CONTENT" > README.md
           fi
-          
-          # Add word cloud section with metadata
-          echo "
-          ## Commit Word Cloud
-          
-          This word cloud is automatically generated from our commit messages:
-          
-          ![Commit Word Cloud](commit_wordcloud.svg)
-          
-          <details>
-          <summary>Word Cloud Information</summary>
-          
-          \`\`\`
-          $WORDCLOUD_INFO
-          \`\`\`
-          </details>
-          
-          <!-- wordcloud-end -->
-          " >> README.md
       
-      - name: Commit and push changes
+      - name: Commit changes
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
           git add commit_wordcloud.svg README.md
-          git commit -m "Update commit word cloud" || exit 0
+          git commit -m "docs: update commit word cloud visualization [skip ci]" || exit 0
           git push
