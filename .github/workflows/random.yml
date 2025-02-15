@@ -31,7 +31,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install mypy pylint
+          # Install in current directory
           pip install -e .
+      
+      - name: Verify workspace
+        run: |
+          pwd
+          ls -la
+          echo "Current working directory: $GITHUB_WORKSPACE"
 
       - name: Configure Git
         run: |
@@ -41,7 +48,7 @@ jobs:
           git pull --rebase
       
       - name: Generate commits
-        working-directory: /workspaces/wordcloud
+        # Use the GitHub workspace environment variable
         run: |
           COMMIT_COUNT="${{ github.event.inputs.commit_count || '5' }}"
           python -m commit_generator $COMMIT_COUNT
