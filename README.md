@@ -21,20 +21,17 @@
 
 
 
-## Commit Word Cloud
 
-This word cloud is automatically generated from our commit messages:
+## Commit Word Cloud
 
 ![Commit Word Cloud](commit_wordcloud.svg)
 
 <details>
-<summary>Word Cloud Information</summary>
+<summary>Word Cloud Statistics</summary>
 
-```
-Theme: github
-Generated: 2025-02-09 00:40:45
+```json
+$(cat wordcloud_metadata.json | jq -r '.')
 ```
 </details>
 
 <!-- wordcloud-end -->
-
