@@ -2,7 +2,7 @@ name: Generate Commit Word Cloud
 
 on:
   schedule:
-    - cron: '0 0 * * 0'  # Run weekly on Sunday at midnight
+    - cron: '0 0 * * *'  # Run daily at midnight
   workflow_dispatch:
     inputs:
       color_scheme:
