@@ -66,22 +66,36 @@ jobs:
       
       - name: Update README
         run: |
-          METADATA=$(cat wordcloud_metadata.json)
+          # Create temporary file for the new content
+          cat > wordcloud_section.md << 'EOL'
+          ## Commit Word Cloud
           
-          # Create or update README section
-          README_CONTENT="## Commit Word Cloud\n\n"
-          README_CONTENT+="![Commit Word Cloud](commit_wordcloud.svg)\n\n"
-          README_CONTENT+="<details>\n<summary>Word Cloud Statistics</summary>\n\n"
-          README_CONTENT+="$(echo "$METADATA" | jq -r '. | "Theme: " + .theme + "\n" + "Generated: " + .timestamp + "\n\nTop 10 words:\n" + (.top_words | to_entries | map("- " + .value[0] + ": " + (.value[1] | tostring)) | join("\n"))')\n"
-          README_CONTENT+="</details>\n\n<!-- wordcloud-end -->"
+          ![Commit Word Cloud](commit_wordcloud.svg)
           
-          # Update README
+          <details>
+          <summary>Word Cloud Statistics</summary>
+          
+          ```json
+          $(cat wordcloud_metadata.json | jq -r '.')
+          ```
+          </details>
+          
+          <!-- wordcloud-end -->
+          EOL
+          
+          # Update or create README
           if [ -f README.md ]; then
-            sed -i '/## Commit Word Cloud/,/<!-- wordcloud-end -->/c\'"$README_CONTENT" README.md
+            # Remove existing section if present and add new section
+            sed -i '/## Commit Word Cloud/,/<!-- wordcloud-end -->/d' README.md
+            cat wordcloud_section.md >> README.md
           else
-            echo "$README_CONTENT" > README.md
+            # Create new README
+            cat wordcloud_section.md > README.md
           fi
-      
+          
+          # Clean up temporary file
+          rm wordcloud_section.md
+
       - name: Commit changes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
