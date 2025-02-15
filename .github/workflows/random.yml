@@ -2,7 +2,7 @@ name: Random Commit Generator
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Run every 6 hours
+    - cron: '0 */6 * * *'
   workflow_dispatch:
     inputs:
       commit_count:
@@ -27,242 +27,44 @@ jobs:
         with:
           python-version: '3.10'
       
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install mypy pylint
+
       - name: Configure Git
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          # Ensure we're on main branch
           git checkout main || git checkout master
-          # Pull latest changes
           git pull --rebase
       
-      - name: Create random commit generator
+      - name: Generate commits
         run: |
-          cat << 'EOF' > generate_commits.py
-          import random
-          import os
-          import datetime
+          PYTHONPATH=/workspaces/wordcloud/src python3 << 'EOF'
+          from commit_generator.generator import CommitGenerator
           import sys
-          import json
-          
-          # Development activities
-          ACTIVITIES = {
-              'feat': [
-                  'add {feature} functionality',
-                  'implement {feature} module',
-                  'introduce {feature} support',
-                  'create new {feature} component'
-              ],
-              'fix': [
-                  'fix bug in {component}',
-                  'resolve {component} issue',
-                  'patch {component} vulnerability',
-                  'correct {component} behavior'
-              ],
-              'refactor': [
-                  'refactor {component} code',
-                  'optimize {component} performance',
-                  'improve {component} structure',
-                  'clean up {component} implementation'
-              ],
-              'docs': [
-                  'update {component} documentation',
-                  'add {component} examples',
-                  'improve {component} readme',
-                  'document {component} API'
-              ],
-              'test': [
-                  'add tests for {component}',
-                  'improve {component} test coverage',
-                  'create {component} integration tests',
-                  'fix flaky {component} tests'
-              ]
-          }
-          
-          FEATURES = [
-              'user authentication',
-              'data visualization',
-              'export',
-              'import',
-              'search',
-              'filtering',
-              'sorting',
-              'pagination',
-              'caching',
-              'logging',
-              'monitoring',
-              'reporting',
-              'backup',
-              'restore',
-              'notification',
-              'validation'
-          ]
-          
-          COMPONENTS = [
-              'frontend',
-              'backend',
-              'database',
-              'API',
-              'UI',
-              'authentication',
-              'authorization',
-              'cache',
-              'logger',
-              'utils',
-              'core',
-              'config',
-              'tests',
-              'docs'
-          ]
 
-          def create_random_file_change():
-              # Choose a type of file to modify
-              file_type = random.choice(['python', 'react', 'html', 'css'])
-              
-              if file_type == 'python':
-                  filename = f"src/python/module_{random.randint(1, 100)}.py"
-                  content = f'''
-class {random.choice(["User", "Data", "Service"])}Controller:
-    def __init__(self):
-        self.initialized = True
-        
-    def process_data(self, data):
-        return data
-'''
-
-              elif file_type == 'react':
-                  filename = f"src/components/Component_{random.randint(1, 100)}.jsx"
-                  content = f'''
-import React from 'react';
-
-const {random.choice(["User", "Data", "List"])}Component = () => {{
-    const [data, setData] = React.useState(null);
-    
-    return (
-        <div className="container">
-            <h1>Component</h1>
-        </div>
-    );
-}};
-
-export default {random.choice(["User", "Data", "List"])}Component;
-'''
-              elif file_type == 'html':
-                  filename = f"src/pages/page_{random.randint(1, 100)}.html"
-                  content = f'''
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>Page Title</title>
-    </head>
-    <body>
-        <h1>{random.choice(["Welcome", "About", "Contact"])}</h1>
-    </body>
-</html>
-'''
-              else:  # css
-                  filename = f"src/styles/style_{random.randint(1, 100)}.css"
-                  content = f'''
-.container {{
-    display: {random.choice(['flex', 'grid', 'block'])};
-    padding: {random.randint(10, 30)}px;
-}}
-
-.element {{
-    color: #{random.randint(0, 999999):06x};
-    margin: {random.randint(5, 20)}px;
-}}
-'''
-              
-              # Ensure directory exists
-              os.makedirs(os.path.dirname(filename), exist_ok=True)
-              
-              # Write content to file
-              with open(filename, 'w') as f:
-                  f.write(content.strip())
-              
-              return filename
-
-          def generate_commit_message():
-              activity_type = random.choice(list(ACTIVITIES.keys()))
-              template = random.choice(ACTIVITIES[activity_type])
-              
-              placeholder = random.choice(FEATURES if activity_type == 'feat' else COMPONENTS)
-              
-              message = template.format(
-                  feature=placeholder,
-                  component=placeholder
-              )
-              
-              if random.random() < 0.3:
-                  scope = random.choice(COMPONENTS)
-                  message = f"{activity_type}({scope}): {message}"
-              else:
-                  message = f"{activity_type}: {message}"
-              
-              return message
-
-          if __name__ == "__main__":
+          def main():
+              generator = CommitGenerator()
               num_commits = int(sys.argv[1]) if len(sys.argv) > 1 else 5
               
               for _ in range(num_commits):
-                  try:
-                      # Create 1-3 file changes per commit
-                      num_changes = random.randint(1, 3)
-                      changed_files = []
-                      
-                      for _ in range(num_changes):
-                          try:
-                              file = create_random_file_change()
-                              changed_files.append(file)
-                          except Exception as e:
-                              print(f"Error creating file: {e}")
-                              continue
-                      
-                      if not changed_files:
-                          print("No files were changed, skipping commit")
-                          continue
-                      
-                      # Stage and commit
-                      for file in changed_files:
-                          result = os.system(f'git add "{file}"')
-                          if result != 0:
-                              print(f"Failed to add file {file}")
-                              continue
-                      
-                      message = generate_commit_message()
-                      result = os.system(f'git commit -m "{message}"')
-                      if result != 0:
-                          print("Failed to create commit")
-                          continue
-                      
-                      print(f"Successfully created commit: {message}")
-                  
-                  except Exception as e:
-                      print(f"Error during commit generation: {e}")
-                      continue
+                  generator.create_commit(random.randint(1, 3))
+
+          if __name__ == "__main__":
+              main()
           EOF
-      
-      - name: Generate random commits
-        run: |
-          COMMIT_COUNT="${{ github.event.inputs.commit_count || '5' }}"
-          python generate_commits.py $COMMIT_COUNT
       
       - name: Push changes
         run: |
           MAX_RETRIES=3
           RETRY_COUNT=0
-          
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
             if git pull --rebase && git push; then
-              echo "Successfully pushed changes"
               exit 0
             fi
-            
-            echo "Push failed, retrying..."
             RETRY_COUNT=$((RETRY_COUNT + 1))
             sleep 5
           done
-          
-          echo "Failed to push changes after $MAX_RETRIES attempts"
           exit 1
