@@ -1,8 +1,11 @@
 import random
 import os
+import logging
 from typing import List, Optional
 from dataclasses import dataclass
 from .constants import ACTIVITIES, FEATURES, COMPONENTS
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class FileChange:
@@ -60,21 +63,29 @@ class {random.choice(['User', 'Data', 'Service'])}Controller:
             for _ in range(num_files):
                 file_change = self.create_random_file_change()
                 if file_change:
+                    logger.debug(f"Creating file: {file_change.path}")
                     os.makedirs(os.path.dirname(file_change.path), exist_ok=True)
                     with open(file_change.path, 'w') as f:
                         f.write(file_change.content.strip())
                     changed_files.append(file_change.path)
 
             if not changed_files:
+                logger.error("No files were changed")
                 return False
 
             for file in changed_files:
+                logger.debug(f"Staging file: {file}")
                 if os.system(f'git add "{file}"') != 0:
+                    logger.error(f"Failed to stage file: {file}")
                     return False
 
             message = self.generate_commit_message()
-            return os.system(f'git commit -m "{message}"') == 0
+            logger.info(f"Creating commit with message: {message}")
+            result = os.system(f'git commit -m "{message}"')
+            if result != 0:
+                logger.error(f"Failed to create commit, git returned: {result}")
+            return result == 0
 
         except Exception as e:
-            print(f"Error during commit creation: {e}")
+            logger.error(f"Error during commit creation: {e}")
             return False

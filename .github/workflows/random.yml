@@ -48,10 +48,16 @@ jobs:
           git pull --rebase
       
       - name: Generate commits
-        # Use the GitHub workspace environment variable
+        env:
+          PYTHONUNBUFFERED: 1
         run: |
-          COMMIT_COUNT="${{ github.event.inputs.commit_count || '5' }}"
-          python -m commit_generator $COMMIT_COUNT
+          echo "Commit count from input: ${{ github.event.inputs.commit_count }}"
+          COMMIT_COUNT="${{ github.event.inputs.commit_count }}"
+          if [ -z "$COMMIT_COUNT" ]; then
+            COMMIT_COUNT="5"
+          fi
+          echo "Using commit count: $COMMIT_COUNT"
+          python -m commit_generator "$COMMIT_COUNT"
       
       - name: Push changes
         run: |
