@@ -27,6 +27,15 @@ jobs:
         with:
           python-version: '3.10'
       
+      - name: Configure Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          # Ensure we're on main branch
+          git checkout main || git checkout master
+          # Pull latest changes
+          git pull --rebase
+      
       - name: Create random commit generator
         run: |
           cat << 'EOF' > generate_commits.py
@@ -120,6 +129,7 @@ class {random.choice(["User", "Data", "Service"])}Controller:
     def process_data(self, data):
         return data
 '''
+
               elif file_type == 'react':
                   filename = f"src/components/Component_{random.randint(1, 100)}.jsx"
                   content = f'''
@@ -196,22 +206,42 @@ export default {random.choice(["User", "Data", "List"])}Component;
               num_commits = int(sys.argv[1]) if len(sys.argv) > 1 else 5
               
               for _ in range(num_commits):
-                  # Create 1-3 file changes per commit
-                  num_changes = random.randint(1, 3)
-                  changed_files = [create_random_file_change() for _ in range(num_changes)]
+                  try:
+                      # Create 1-3 file changes per commit
+                      num_changes = random.randint(1, 3)
+                      changed_files = []
+                      
+                      for _ in range(num_changes):
+                          try:
+                              file = create_random_file_change()
+                              changed_files.append(file)
+                          except Exception as e:
+                              print(f"Error creating file: {e}")
+                              continue
+                      
+                      if not changed_files:
+                          print("No files were changed, skipping commit")
+                          continue
+                      
+                      # Stage and commit
+                      for file in changed_files:
+                          result = os.system(f'git add "{file}"')
+                          if result != 0:
+                              print(f"Failed to add file {file}")
+                              continue
+                      
+                      message = generate_commit_message()
+                      result = os.system(f'git commit -m "{message}"')
+                      if result != 0:
+                          print("Failed to create commit")
+                          continue
+                      
+                      print(f"Successfully created commit: {message}")
                   
-                  # Stage and commit
-                  for file in changed_files:
-                      os.system(f'git add {file}')
-                  
-                  message = generate_commit_message()
-                  os.system(f'git commit -m "{message}"')
+                  except Exception as e:
+                      print(f"Error during commit generation: {e}")
+                      continue
           EOF
-      
-      - name: Configure Git
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
       
       - name: Generate random commits
         run: |
@@ -220,4 +250,19 @@ export default {random.choice(["User", "Data", "List"])}Component;
       
       - name: Push changes
         run: |
-          git push
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            if git pull --rebase && git push; then
+              echo "Successfully pushed changes"
+              exit 0
+            fi
+            
+            echo "Push failed, retrying..."
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            sleep 5
+          done
+          
+          echo "Failed to push changes after $MAX_RETRIES attempts"
+          exit 1
