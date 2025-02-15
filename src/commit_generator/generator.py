@@ -43,7 +43,54 @@ class {random.choice(['User', 'Data', 'Service'])}Controller:
         return data
 """
 
-    # ... Similar methods for other file types ...
+    def _create_react_file(self) -> FileChange:
+        filename = f"src/components/Component_{random.randint(1, 100)}.jsx"
+        content = f"""
+import React from 'react';
+
+const {random.choice(['User', 'Data', 'List'])}Component = () => {{
+    const [data, setData] = React.useState(null);
+    
+    return (
+        <div className="container">
+            <h1>Component</h1>
+        </div>
+    );
+}};
+
+export default {random.choice(['User', 'Data', 'List'])}Component;
+"""
+        return FileChange(filename, content)
+
+    def _create_html_file(self) -> FileChange:
+        filename = f"src/pages/page_{random.randint(1, 100)}.html"
+        content = f"""
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Page Title</title>
+    </head>
+    <body>
+        <h1>{random.choice(['Welcome', 'About', 'Contact'])}</h1>
+    </body>
+</html>
+"""
+        return FileChange(filename, content)
+
+    def _create_css_file(self) -> FileChange:
+        filename = f"src/styles/style_{random.randint(1, 100)}.css"
+        content = f"""
+.container {{
+    display: {random.choice(['flex', 'grid', 'block'])};
+    padding: {random.randint(10, 30)}px;
+}}
+
+.element {{
+    color: #{random.randint(0, 999999):06x};
+    margin: {random.randint(5, 20)}px;
+}}
+"""
+        return FileChange(filename, content)
 
     def generate_commit_message(self) -> str:
         activity_type = random.choice(list(ACTIVITIES.keys()))
