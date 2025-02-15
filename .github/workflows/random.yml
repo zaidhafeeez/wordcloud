@@ -31,6 +31,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install mypy pylint
+          pip install -e .
 
       - name: Configure Git
         run: |
@@ -40,8 +41,7 @@ jobs:
           git pull --rebase
       
       - name: Generate commits
-        env:
-          PYTHONPATH: /workspaces/wordcloud/src
+        working-directory: /workspaces/wordcloud
         run: |
           COMMIT_COUNT="${{ github.event.inputs.commit_count || '5' }}"
           python -m commit_generator $COMMIT_COUNT
