@@ -1,9 +1,9 @@
 .container {
-    display: flex;
-    padding: 14px;
+    display: grid;
+    padding: 29px;
 }
 
 .element {
-    color: #0a772f;
-    margin: 13px;
+    color: #0e8914;
+    margin: 6px;
 }
