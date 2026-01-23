@@ -1,6 +1,6 @@
 import React from 'react';
 
-const DataComponent = () => {
+const ListComponent = () => {
     const [data, setData] = React.useState(null);
     
     return (
