@@ -10,4 +10,4 @@ const UserComponent = () => {
     );
 };
 
-export default DataComponent;
+export default UserComponent;
