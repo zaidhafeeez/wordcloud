@@ -1,6 +1,6 @@
 import React from 'react';
 
-const UserComponent = () => {
+const ListComponent = () => {
     const [data, setData] = React.useState(null);
     
     return (
@@ -10,4 +10,4 @@ const UserComponent = () => {
     );
 };
 
-export default ListComponent;
+export default DataComponent;
