@@ -1,6 +1,6 @@
 import React from 'react';
 
-const DataComponent = () => {
+const UserComponent = () => {
     const [data, setData] = React.useState(null);
     
     return (
@@ -10,4 +10,4 @@ const DataComponent = () => {
     );
 };
 
-export default DataComponent;
+export default UserComponent;
