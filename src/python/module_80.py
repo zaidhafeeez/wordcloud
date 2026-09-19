@@ -1,4 +1,4 @@
-class UserController:
+class ServiceController:
     def __init__(self) -> None:
         self.initialized = True
     
