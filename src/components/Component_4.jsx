@@ -1,6 +1,6 @@
 import React from 'react';
 
-const UserComponent = () => {
+const DataComponent = () => {
     const [data, setData] = React.useState(null);
     
     return (
