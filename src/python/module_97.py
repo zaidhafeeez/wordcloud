@@ -1,4 +1,4 @@
-class DataController:
+class UserController:
     def __init__(self) -> None:
         self.initialized = True
     
