@@ -10,4 +10,4 @@ const ListComponent = () => {
     );
 };
 
-export default ListComponent;
+export default DataComponent;
